@@ -370,6 +370,9 @@ public class CrateListener implements Listener {
             player.sendMessage(ChatColor.RED + "Valori non validi!");
         }
     }
+
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent e) {
         if (!(e.getPlayer() instanceof Player player)) return;
         CrateGUI.openGUI.remove(player.getUniqueId());
         CrateGUI.editingCrate.remove(player.getUniqueId());
