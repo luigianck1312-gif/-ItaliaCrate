@@ -1,0 +1,17 @@
+name: ItaliaCrate
+version: 1.0.0
+main: it.italiacrate.ItaliaCrate
+api-version: 1.21
+description: Sistema Crate per SteelThrone
+authors: [SteelThrone]
+commands:
+  place:
+    description: Piazza crate o keyshop
+    usage: /place <crate <rarità>|keyshop|daily>
+  crate:
+    description: Gestione crate
+    usage: /crate <edit>
+permissions:
+  italiacrate.admin:
+    description: Permessi admin crate
+    default: op

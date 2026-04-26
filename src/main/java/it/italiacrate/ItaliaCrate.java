@@ -1,0 +1,48 @@
+package it.italiacrate;
+
+import it.italiacrate.commands.PlaceCommand;
+import it.italiacrate.gui.CrateGUI;
+import it.italiacrate.listeners.CrateListener;
+import it.italiacrate.managers.*;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public class ItaliaCrate extends JavaPlugin {
+
+    private CrateManager crateManager;
+    private CrateNPCManager npcManager;
+    private CrateGUI crateGUI;
+    private DailyManager dailyManager;
+    private CrystalManager crystalManager;
+
+    @Override
+    public void onEnable() {
+        getLogger().info("ItaliaCrate avviato!");
+        getDataFolder().mkdirs();
+
+        crateManager = new CrateManager(this);
+        npcManager = new CrateNPCManager(this);
+        crateGUI = new CrateGUI(this);
+        dailyManager = new DailyManager(this);
+        crystalManager = new CrystalManager(this);
+
+        getCommand("place").setExecutor(new PlaceCommand(this));
+        getServer().getPluginManager().registerEvents(new CrateListener(this), this);
+
+        getLogger().info("ItaliaCrate caricato con successo!");
+    }
+
+    @Override
+    public void onDisable() {
+        if (crateManager != null) crateManager.saveCrates();
+        if (dailyManager != null) dailyManager.saveData();
+        if (crystalManager != null) crystalManager.save();
+        if (npcManager != null) npcManager.save();
+        getLogger().info("ItaliaCrate disattivato!");
+    }
+
+    public CrateManager getCrateManager() { return crateManager; }
+    public CrateNPCManager getNpcManager() { return npcManager; }
+    public CrateGUI getCrateGUI() { return crateGUI; }
+    public DailyManager getDailyManager() { return dailyManager; }
+    public CrystalManager getCrystalManager() { return crystalManager; }
+}
