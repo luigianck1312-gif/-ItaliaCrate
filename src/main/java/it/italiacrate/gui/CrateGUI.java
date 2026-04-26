@@ -20,6 +20,7 @@ public class CrateGUI {
     public static final Map<UUID, String> openGUI = new HashMap<>();
     public static final Map<UUID, CrateData> editingCrate = new HashMap<>();
     public static final Map<UUID, Integer> editPage = new HashMap<>();
+    public static final Map<UUID, Integer> settingChanceIndex = new HashMap<>();
 
     public CrateGUI(ItaliaCrate plugin) {
         this.plugin = plugin;
@@ -93,8 +94,8 @@ public class CrateGUI {
         inv.setItem(49, createItemWithLore(Material.LIME_WOOL,
                 ChatColor.GREEN + "Aggiungi Item",
                 Arrays.asList(
-                    ChatColor.GRAY + "Trascina un item qui",
-                    ChatColor.GRAY + "per aggiungerlo come premio"
+                    ChatColor.GRAY + "Tieni l'oggetto in mano",
+                    ChatColor.GRAY + "e clicca uno slot vuoto"
                 )));
 
         inv.setItem(46, createItemWithLore(Material.GOLD_NUGGET,

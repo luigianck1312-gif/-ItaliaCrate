@@ -11,6 +11,9 @@ commands:
   crate:
     description: Gestione crate
     usage: /crate <edit>
+  removetags:
+    description: Rimuovi targhette armor stand rimaste
+    usage: /removetags
 permissions:
   italiacrate.admin:
     description: Permessi admin crate

@@ -21,6 +21,7 @@ public class CrateData {
 
     public void addReward(CrateReward reward) { rewards.add(reward); }
     public void removeReward(int index) { if (index >= 0 && index < rewards.size()) rewards.remove(index); }
+    public void setReward(int index, CrateReward reward) { if (index >= 0 && index < rewards.size()) rewards.set(index, reward); }
 
     // Estrai un premio casuale in base alle probabilità
     public CrateReward rollReward() {
