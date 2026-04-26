@@ -106,41 +106,58 @@ public class CrateListener implements Listener {
     }
 
     private void openCrate(Player player, CrateData crate, ItemStack key) {
-        // Rimuovi chiave
         key.setAmount(key.getAmount() - 1);
 
-        // Estrai premio
         CrateReward reward = crate.rollReward();
         if (reward == null) {
             player.sendMessage(ChatColor.RED + "Errore nel estrarre il premio!");
             return;
         }
 
-        // Effetti
         Location loc = crate.getLocation().clone().add(0.5, 1, 0.5);
         loc.getWorld().spawnParticle(Particle.FIREWORK, loc, 50, 0.5, 0.5, 0.5, 0.1);
         loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
         loc.getWorld().playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.5f, 1.0f);
 
-        // Dai il premio
-        player.getInventory().addItem(reward.getItem());
+        String winMessage;
 
-        // Messaggio
-        String itemName = reward.getItem().getItemMeta() != null && reward.getItem().getItemMeta().hasDisplayName()
-                ? reward.getItem().getItemMeta().getDisplayName()
-                : reward.getItem().getType().name().toLowerCase().replace("_", " ");
+        if (reward.getType() == CrateReward.RewardType.MONEY) {
+            // Dai soldi
+            if (plugin.getEconomy() != null) {
+                plugin.getEconomy().depositPlayer(player, reward.getAmount());
+            }
+            winMessage = ChatColor.GOLD + "💰 " + formatMoney(reward.getAmount()) + "$";
+            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
+        } else if (reward.getType() == CrateReward.RewardType.CRYSTALS) {
+            // Dai cristalli
+            plugin.getCrystalManager().addCrystals(player, (int) reward.getAmount());
+            winMessage = ChatColor.AQUA + "💎 " + (int) reward.getAmount() + " cristalli";
+            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
+        } else {
+            // Dai item
+            player.getInventory().addItem(reward.getItem());
+            String itemName = reward.getItem().getItemMeta() != null && reward.getItem().getItemMeta().hasDisplayName()
+                    ? reward.getItem().getItemMeta().getDisplayName()
+                    : reward.getItem().getType().name().toLowerCase().replace("_", " ");
+            winMessage = ChatColor.WHITE + itemName + " x" + reward.getItem().getAmount();
+            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
+        }
 
         player.sendMessage(crate.getRarity().primaryColor + "✦ Hai aperto una Crate " +
                 crate.getRarity().displayName + crate.getRarity().primaryColor + "!");
-        player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + ChatColor.WHITE + itemName +
-                ChatColor.YELLOW + " x" + reward.getItem().getAmount());
 
-        // Broadcast se rarità alta
         if (crate.getRarity() == CrateRarity.MITICA || crate.getRarity() == CrateRarity.LEGGENDARIA) {
             Bukkit.broadcastMessage(crate.getRarity().primaryColor + "" + ChatColor.BOLD +
                     "✦ " + player.getName() + " ha aperto una Crate " + crate.getRarity().displayName +
-                    " e ha vinto: " + ChatColor.WHITE + itemName + "!");
+                    " e ha vinto: " + winMessage + "!");
         }
+    }
+
+    private String formatMoney(double amount) {
+        if (amount >= 1_000_000_000) return String.format("%.0fMld", amount / 1_000_000_000);
+        if (amount >= 1_000_000) return String.format("%.0fMln", amount / 1_000_000);
+        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000);
+        return String.valueOf((long) amount);
     }
 
     // Drop chiavi dai mob
@@ -190,13 +207,20 @@ public class CrateListener implements Listener {
         String gui = CrateGUI.openGUI.get(uuid);
         if (gui == null) return;
 
-        e.setCancelled(true);
         ItemStack clicked = e.getCurrentItem();
+
+        if (gui.equals("crate_edit")) {
+            // Nella GUI edit non cancelliamo sempre — gestiamo caso per caso
+            handleEditClick(player, clicked, e);
+            return;
+        }
+
+        // Per tutte le altre GUI cancelliamo sempre
+        e.setCancelled(true);
 
         switch (gui) {
             case "keyshop" -> handleKeyshopClick(player, clicked);
             case "daily" -> handleDailyClick(player, clicked, e.getSlot());
-            case "crate_edit" -> handleEditClick(player, clicked, e);
         }
     }
 
@@ -245,67 +269,107 @@ public class CrateListener implements Listener {
     }
 
     private void handleEditClick(Player player, ItemStack clicked, InventoryClickEvent e) {
-        if (clicked == null || clicked.getType().isAir()) {
-            // Se clicca slot vuoto con item in mano → aggiungi premio
-            if (e.getCursor() != null && !e.getCursor().getType().isAir() && e.getSlot() < 45) {
-                CrateData crate = CrateGUI.editingCrate.get(player.getUniqueId());
-                if (crate == null) return;
+        CrateData crate = CrateGUI.editingCrate.get(player.getUniqueId());
+        if (crate == null) return;
 
-                ItemStack toAdd = e.getCursor().clone();
-                toAdd.setAmount(1);
-
-                // Chiedi probabilità in chat
-                player.closeInventory();
-                player.sendMessage(ChatColor.YELLOW + "Scrivi in chat la probabilità (es: 50.0) per: " +
-                        toAdd.getType().name());
-                settingChance.put(player.getUniqueId(), crate.getRewards().size());
-                // Salva item temporaneamente
-                player.getInventory().addItem(toAdd);
-                // Aggiungi con chance default 10%
-                crate.addReward(new CrateReward(toAdd, 10.0));
-                plugin.getCrateManager().saveCrates();
-                player.sendMessage(ChatColor.GREEN + "Premio aggiunto con probabilità 10%!");
-                player.sendMessage(ChatColor.GRAY + "Rientra nell'edit per modificare la probabilità.");
-            }
-            return;
-        }
-
-        if (clicked.getType() == Material.BARRIER) {
+        // Click su BARRIER → chiudi
+        if (clicked != null && clicked.getType() == Material.BARRIER) {
             player.closeInventory();
             return;
         }
 
-        // Click destro su premio → rimuovi
-        if (e.isRightClick()) {
+        // Click su ARROW → cambia pagina
+        if (clicked != null && clicked.getType() == Material.ARROW) {
+            int page = CrateGUI.editPage.getOrDefault(player.getUniqueId(), 0);
+            if (e.getSlot() == 45) plugin.getCrateGUI().openCrateEdit(player, crate, page - 1);
+            if (e.getSlot() == 53) plugin.getCrateGUI().openCrateEdit(player, crate, page + 1);
+            return;
+        }
+
+        // Click su slot vuoto con item in mano (slot < 45) → aggiungi premio
+        if (e.getSlot() < 45 && (clicked == null || clicked.getType().isAir())) {
+            ItemStack cursor = e.getCursor();
+            if (cursor != null && !cursor.getType().isAir()) {
+                e.setCancelled(true);
+                ItemStack toAdd = cursor.clone();
+                toAdd.setAmount(1);
+                crate.addReward(new CrateReward(toAdd, 10.0));
+                plugin.getCrateManager().saveCrates();
+                player.sendMessage(ChatColor.GREEN + "Premio aggiunto con probabilità 10% — scrivi in chat " +
+                        ChatColor.YELLOW + "add_money" + ChatColor.GREEN + " o " +
+                        ChatColor.YELLOW + "add_crystals" + ChatColor.GREEN + " per aggiungere soldi/cristalli!");
+                int page = CrateGUI.editPage.getOrDefault(player.getUniqueId(), 0);
+                plugin.getServer().getScheduler().runTask(plugin,
+                    () -> plugin.getCrateGUI().openCrateEdit(player, crate, page));
+            }
+            return;
+        }
+
+        // Click destro su premio esistente → rimuovi
+        if (e.isRightClick() && clicked != null && !clicked.getType().isAir()) {
             ItemMeta meta = clicked.getItemMeta();
             if (meta != null && meta.hasLore()) {
                 for (String line : meta.getLore()) {
                     if (line.startsWith(ChatColor.BLACK + "reward_index:")) {
                         int index = Integer.parseInt(line.replace(ChatColor.BLACK + "reward_index:", ""));
-                        CrateData crate = CrateGUI.editingCrate.get(player.getUniqueId());
-                        if (crate != null && index < crate.getRewards().size()) {
+                        if (index < crate.getRewards().size()) {
                             crate.removeReward(index);
                             plugin.getCrateManager().saveCrates();
                             player.sendMessage(ChatColor.RED + "Premio rimosso!");
                             int page = CrateGUI.editPage.getOrDefault(player.getUniqueId(), 0);
-                            plugin.getCrateGUI().openCrateEdit(player, crate, page);
+                            plugin.getServer().getScheduler().runTask(plugin,
+                                () -> plugin.getCrateGUI().openCrateEdit(player, crate, page));
                         }
+                        return;
                     }
                 }
             }
         }
-
-        if (clicked.getType() == Material.ARROW) {
-            CrateData crate = CrateGUI.editingCrate.get(player.getUniqueId());
-            if (crate == null) return;
-            int page = CrateGUI.editPage.getOrDefault(player.getUniqueId(), 0);
-            if (e.getSlot() == 45) plugin.getCrateGUI().openCrateEdit(player, crate, page - 1);
-            if (e.getSlot() == 53) plugin.getCrateGUI().openCrateEdit(player, crate, page + 1);
-        }
     }
 
+    // Chat listener per aggiungere premi soldi/cristalli
     @EventHandler
-    public void onInventoryClose(InventoryCloseEvent e) {
+    public void onChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
+        Player player = e.getPlayer();
+        UUID uuid = player.getUniqueId();
+        if (!CrateGUI.editingCrate.containsKey(uuid)) return;
+
+        String msg = e.getMessage().trim();
+        if (!msg.startsWith("add_money") && !msg.startsWith("add_crystals")) return;
+
+        e.setCancelled(true);
+        CrateData crate = CrateGUI.editingCrate.get(uuid);
+        if (crate == null) return;
+
+        String[] parts = msg.split(" ");
+        if (parts.length < 3) {
+            player.sendMessage(ChatColor.RED + "Uso: add_money <quantità> <chance%> oppure add_crystals <quantità> <chance%>");
+            return;
+        }
+
+        try {
+            double amount = Double.parseDouble(parts[1]);
+            double chance = Double.parseDouble(parts[2]);
+
+            if (msg.startsWith("add_money")) {
+                crate.addReward(new CrateReward(CrateReward.RewardType.MONEY, amount, chance));
+                plugin.getCrateManager().saveCrates();
+                player.sendMessage(ChatColor.GREEN + "Premio soldi aggiunto: " + formatMoney(amount) + "$ con " + chance + "% di probabilità!");
+            } else {
+                crate.addReward(new CrateReward(CrateReward.RewardType.CRYSTALS, amount, chance));
+                plugin.getCrateManager().saveCrates();
+                player.sendMessage(ChatColor.GREEN + "Premio cristalli aggiunto: " + (int)amount + " 💎 con " + chance + "% di probabilità!");
+            }
+
+            // Riapri GUI
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                int page = CrateGUI.editPage.getOrDefault(uuid, 0);
+                plugin.getCrateGUI().openCrateEdit(player, crate, page);
+            });
+        } catch (NumberFormatException ex) {
+            player.sendMessage(ChatColor.RED + "Valori non validi!");
+        }
+    }
         if (!(e.getPlayer() instanceof Player player)) return;
         CrateGUI.openGUI.remove(player.getUniqueId());
         CrateGUI.editingCrate.remove(player.getUniqueId());

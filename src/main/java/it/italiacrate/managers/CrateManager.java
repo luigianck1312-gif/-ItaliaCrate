@@ -170,9 +170,18 @@ public class CrateManager {
                 // Carica rewards
                 if (config.contains(key + ".rewards")) {
                     for (String rKey : config.getConfigurationSection(key + ".rewards").getKeys(false)) {
-                        ItemStack item = config.getItemStack(key + ".rewards." + rKey + ".item");
+                        String rType = config.getString(key + ".rewards." + rKey + ".type", "ITEM");
                         double chance = config.getDouble(key + ".rewards." + rKey + ".chance");
-                        if (item != null) data.addReward(new CrateReward(item, chance));
+                        if (rType.equals("MONEY")) {
+                            double amount = config.getDouble(key + ".rewards." + rKey + ".amount");
+                            data.addReward(new CrateReward(CrateReward.RewardType.MONEY, amount, chance));
+                        } else if (rType.equals("CRYSTALS")) {
+                            double amount = config.getDouble(key + ".rewards." + rKey + ".amount");
+                            data.addReward(new CrateReward(CrateReward.RewardType.CRYSTALS, amount, chance));
+                        } else {
+                            ItemStack item = config.getItemStack(key + ".rewards." + rKey + ".item");
+                            if (item != null) data.addReward(new CrateReward(item, chance));
+                        }
                     }
                 }
                 crates.put(loc, data);
@@ -197,11 +206,57 @@ public class CrateManager {
             config.set(key + ".rarity", data.getRarity().name());
             for (int j = 0; j < data.getRewards().size(); j++) {
                 CrateReward r = data.getRewards().get(j);
-                config.set(key + ".rewards." + j + ".item", r.getItem());
+                config.set(key + ".rewards." + j + ".type", r.getType().name());
                 config.set(key + ".rewards." + j + ".chance", r.getChance());
+                if (r.isItem()) {
+                    config.set(key + ".rewards." + j + ".item", r.getItem());
+                } else {
+                    config.set(key + ".rewards." + j + ".amount", r.getAmount());
+                }
             }
         }
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    // Crea item display per premio soldi
+    public ItemStack createMoneyRewardItem(double amount, double chance) {
+        ItemStack item = new ItemStack(Material.GOLD_NUGGET);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + "💰 Premio Soldi");
+            meta.setLore(Arrays.asList(
+                ChatColor.YELLOW + "Quantità: " + ChatColor.WHITE + formatMoney(amount) + "$",
+                ChatColor.GOLD + "Probabilità: " + ChatColor.WHITE + chance + "%",
+                ChatColor.BLACK + "reward_type:MONEY",
+                ChatColor.BLACK + "reward_amount:" + amount
+            ));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    // Crea item display per premio cristalli
+    public ItemStack createCrystalRewardItem(int amount, double chance) {
+        ItemStack item = new ItemStack(Material.AMETHYST_SHARD);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.AQUA + "💎 Premio Cristalli");
+            meta.setLore(Arrays.asList(
+                ChatColor.AQUA + "Quantità: " + ChatColor.WHITE + amount + " cristalli",
+                ChatColor.GOLD + "Probabilità: " + ChatColor.WHITE + chance + "%",
+                ChatColor.BLACK + "reward_type:CRYSTALS",
+                ChatColor.BLACK + "reward_amount:" + amount
+            ));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private String formatMoney(double amount) {
+        if (amount >= 1_000_000_000) return String.format("%.0fMld", amount / 1_000_000_000);
+        if (amount >= 1_000_000) return String.format("%.0fMln", amount / 1_000_000);
+        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000);
+        return String.valueOf((long) amount);
     }
 
     public NamespacedKey getCrateKey() { return crateKey; }
