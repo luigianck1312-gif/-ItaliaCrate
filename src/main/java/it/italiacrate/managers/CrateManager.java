@@ -6,14 +6,10 @@ import it.italiacrate.models.CrateRarity;
 import it.italiacrate.models.CrateReward;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.ShulkerBox;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.io.File;
 import java.util.*;
@@ -88,8 +84,8 @@ public class CrateManager {
     }
 
     private void spawnNameTag(Location loc, CrateRarity rarity) {
-        // Spawna un armor stand invisibile con nome sopra la crate
         Location nametagLoc = loc.clone().add(0.5, 1.3, 0.5);
+        String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
         nametagLoc.getWorld().spawn(nametagLoc, org.bukkit.entity.ArmorStand.class, as -> {
             as.setVisible(false);
             as.setGravity(false);
@@ -97,9 +93,8 @@ public class CrateManager {
             as.setCustomNameVisible(true);
             as.setInvulnerable(true);
             as.setSmall(true);
-            as.getPersistentData().set(crateKey, PersistentDataType.STRING, rarity.name());
-            as.getPersistentData().set(new NamespacedKey(plugin, "crate_nametag"),
-                PersistentDataType.STRING, loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ());
+            as.setMetadata("crate_rarity", new org.bukkit.metadata.FixedMetadataValue(plugin, rarity.name()));
+            as.setMetadata("crate_nametag", new org.bukkit.metadata.FixedMetadataValue(plugin, locStr));
         });
     }
 
@@ -112,13 +107,11 @@ public class CrateManager {
     }
 
     public void removeCrate(Location loc) {
-        // Rimuovi armor stand
+        String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
         loc.getWorld().getEntitiesByClass(org.bukkit.entity.ArmorStand.class).forEach(as -> {
-            String tag = as.getPersistentData().get(
-                new NamespacedKey(plugin, "crate_nametag"), PersistentDataType.STRING);
-            if (tag != null) {
-                String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-                if (tag.equals(locStr)) as.remove();
+            if (as.hasMetadata("crate_nametag")) {
+                String tag = as.getMetadata("crate_nametag").get(0).asString();
+                if (locStr.equals(tag)) as.remove();
             }
         });
         crates.remove(loc);
