@@ -183,12 +183,8 @@ public class CrateGUI {
         }
     }
 
-    private String formatMoney(double amount) {
-        if (amount >= 1_000_000_000) return String.format("%.0fMld", amount / 1_000_000_000);
-        if (amount >= 1_000_000) return String.format("%.0fMln", amount / 1_000_000);
-        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000);
-        return String.valueOf((long) amount);
-    }
+    // GUI apertura crate (non animata - usata internamente)
+    public void openCrate(Player player, CrateData crate) {
         CrateRarity rarity = crate.getRarity();
         String title = rarity.primaryColor + "✦ Crate " + rarity.displayName + " ✦";
         Inventory inv = Bukkit.createInventory(null, 27, title);
