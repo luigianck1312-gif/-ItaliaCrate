@@ -11,9 +11,9 @@ commands:
   crate:
     description: Gestione crate
     usage: /crate <edit>
-  removetags:
-    description: Rimuovi targhette armor stand rimaste
-    usage: /removetags
+  givekey:
+    description: Dai una chiave a un giocatore
+    usage: /givekey <player> <comune|epica|leggendaria|mitica> [quantità]
 permissions:
   italiacrate.admin:
     description: Permessi admin crate

@@ -44,8 +44,18 @@ public class CrystalManager {
         save();
     }
 
+    private File getCrystalsFile() {
+        // Usa il file di ItaliaShop se il plugin è installato
+        org.bukkit.plugin.Plugin italiaShop = plugin.getServer().getPluginManager().getPlugin("ItaliaShop");
+        if (italiaShop != null) {
+            File f = new File(italiaShop.getDataFolder(), "crystals.yml");
+            return f;
+        }
+        return new File(plugin.getDataFolder(), "crystals.yml");
+    }
+
     private void load() {
-        File file = new File(plugin.getDataFolder(), "crystals.yml");
+        File file = getCrystalsFile();
         if (!file.exists()) return;
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         for (String key : config.getKeys(false)) {
@@ -54,7 +64,7 @@ public class CrystalManager {
     }
 
     public void save() {
-        File file = new File(plugin.getDataFolder(), "crystals.yml");
+        File file = getCrystalsFile();
         YamlConfiguration config = new YamlConfiguration();
         crystals.forEach((uuid, amount) -> config.set(uuid.toString(), amount));
         try { config.save(file); } catch (Exception e) { e.printStackTrace(); }

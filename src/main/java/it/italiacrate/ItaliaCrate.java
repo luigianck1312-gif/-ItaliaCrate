@@ -1,5 +1,6 @@
 package it.italiacrate;
 
+import it.italiacrate.commands.GiveKeyCommand;
 import it.italiacrate.commands.PlaceCommand;
 import it.italiacrate.gui.CrateGUI;
 import it.italiacrate.listeners.CrateListener;
@@ -31,6 +32,7 @@ public class ItaliaCrate extends JavaPlugin {
         crystalManager = new CrystalManager(this);
 
         getCommand("place").setExecutor(new PlaceCommand(this));
+        getCommand("givekey").setExecutor(new GiveKeyCommand(this));
         getServer().getPluginManager().registerEvents(new CrateListener(this), this);
 
         getLogger().info("ItaliaCrate caricato con successo!");
