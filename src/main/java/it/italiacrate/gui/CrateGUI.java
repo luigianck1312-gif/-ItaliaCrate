@@ -387,4 +387,11 @@ public class CrateGUI {
         if (meta != null) { meta.setDisplayName(name); meta.setLore(lore); item.setItemMeta(meta); }
         return item;
     }
+
+    private String formatMoney(double amount) {
+        if (amount >= 1_000_000_000) return String.format("%.0fMld", amount / 1_000_000_000);
+        if (amount >= 1_000_000) return String.format("%.0fMln", amount / 1_000_000);
+        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000);
+        return String.valueOf((long) amount);
+    }
 }

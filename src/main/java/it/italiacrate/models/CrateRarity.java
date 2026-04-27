@@ -4,10 +4,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 
 public enum CrateRarity {
-    COMUNE("Comune", ChatColor.WHITE, ChatColor.GRAY, Material.WHITE_DYE, 50),
-    EPICA("Epica", ChatColor.DARK_PURPLE, ChatColor.LIGHT_PURPLE, Material.PURPLE_DYE, 200),
-    LEGGENDARIA("Leggendaria", ChatColor.GOLD, ChatColor.YELLOW, Material.ORANGE_DYE, 600),
-    MITICA("Mitica", ChatColor.RED, ChatColor.DARK_RED, Material.RED_DYE, 1500);
+    COMUNE("Comune", ChatColor.WHITE, ChatColor.GRAY, Material.WHITE_DYE, 10),
+    EPICA("Epica", ChatColor.DARK_PURPLE, ChatColor.LIGHT_PURPLE, Material.PURPLE_DYE, 50),
+    LEGGENDARIA("Leggendaria", ChatColor.GOLD, ChatColor.YELLOW, Material.ORANGE_DYE, 150),
+    MITICA("Mitica", ChatColor.RED, ChatColor.DARK_RED, Material.RED_DYE, 400);
 
     public final String displayName;
     public final ChatColor primaryColor;
