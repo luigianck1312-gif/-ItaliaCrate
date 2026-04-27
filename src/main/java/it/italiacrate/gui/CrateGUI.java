@@ -24,6 +24,7 @@ public class CrateGUI {
     public static final Map<UUID, CrateData> editingCrate = new HashMap<>();
     public static final Map<UUID, Integer> editPage = new HashMap<>();
     public static final Map<UUID, Integer> settingChanceIndex = new HashMap<>();
+    public static final Map<UUID, String> pendingInput = new HashMap<>(); // "add_money" o "add_crystals"
 
     public CrateGUI(ItaliaCrate plugin) {
         this.plugin = plugin;
@@ -258,17 +259,19 @@ public class CrateGUI {
         inv.setItem(46, createItemWithLore(Material.GOLD_NUGGET,
                 ChatColor.GOLD + "Aggiungi Premio Soldi",
                 Arrays.asList(
-                    ChatColor.GRAY + "Scrivi in chat:",
-                    ChatColor.GRAY + "add_money <quantità> <chance%>",
-                    ChatColor.GRAY + "Es: add_money 5000000 20"
+                    ChatColor.GRAY + "Clicca qui, poi scrivi",
+                    ChatColor.GRAY + "in chat: <quantità> <chance%>",
+                    ChatColor.GRAY + "Es: 5000000 20",
+                    ChatColor.BLACK + "btn:add_money"
                 )));
 
         inv.setItem(47, createItemWithLore(Material.AMETHYST_SHARD,
                 ChatColor.AQUA + "Aggiungi Premio Cristalli",
                 Arrays.asList(
-                    ChatColor.GRAY + "Scrivi in chat:",
-                    ChatColor.GRAY + "add_crystals <quantità> <chance%>",
-                    ChatColor.GRAY + "Es: add_crystals 100 15"
+                    ChatColor.GRAY + "Clicca qui, poi scrivi",
+                    ChatColor.GRAY + "in chat: <quantità> <chance%>",
+                    ChatColor.GRAY + "Es: 100 15",
+                    ChatColor.BLACK + "btn:add_crystals"
                 )));
 
         inv.setItem(45, page > 0 ? createItem(Material.ARROW, ChatColor.WHITE + "« Precedente") :

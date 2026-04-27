@@ -245,7 +245,29 @@ public class CrateListener implements Listener {
             return;
         }
 
-        // Click su ARROW → cambia pagina
+        // Click su bottone add_money o add_crystals
+        if (clicked != null && clicked.getItemMeta() != null && clicked.getItemMeta().hasLore()) {
+            for (String line : clicked.getItemMeta().getLore()) {
+                if (line.equals(ChatColor.BLACK + "btn:add_money")) {
+                    CrateGUI.pendingInput.put(player.getUniqueId(), "add_money");
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        player.closeInventory();
+                        player.sendMessage(ChatColor.GOLD + "Scrivi in chat: " + ChatColor.WHITE + "<quantità> <probabilità%>");
+                        player.sendMessage(ChatColor.GRAY + "Es: " + ChatColor.WHITE + "5000000 20");
+                    });
+                    return;
+                }
+                if (line.equals(ChatColor.BLACK + "btn:add_crystals")) {
+                    CrateGUI.pendingInput.put(player.getUniqueId(), "add_crystals");
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        player.closeInventory();
+                        player.sendMessage(ChatColor.AQUA + "Scrivi in chat: " + ChatColor.WHITE + "<quantità> <probabilità%>");
+                        player.sendMessage(ChatColor.GRAY + "Es: " + ChatColor.WHITE + "100 15");
+                    });
+                    return;
+                }
+            }
+        }
         if (clicked != null && clicked.getType() == Material.ARROW) {
             int page = CrateGUI.editPage.getOrDefault(player.getUniqueId(), 0);
             if (e.getSlot() == 45) plugin.getCrateGUI().openCrateEdit(player, crate, page - 1);
@@ -319,7 +341,11 @@ public class CrateListener implements Listener {
     public void onChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
         Player player = e.getPlayer();
         UUID uuid = player.getUniqueId();
-        if (!CrateGUI.editingCrate.containsKey(uuid) && !CrateGUI.settingChanceIndex.containsKey(uuid)) return;
+
+        boolean hasPending = CrateGUI.editingCrate.containsKey(uuid) || 
+                             CrateGUI.settingChanceIndex.containsKey(uuid) ||
+                             CrateGUI.pendingInput.containsKey(uuid);
+        if (!hasPending) return;
 
         String msg = e.getMessage().trim();
         e.setCancelled(true);
@@ -333,12 +359,9 @@ public class CrateListener implements Listener {
                 int index = CrateGUI.settingChanceIndex.get(uuid);
                 if (index < crate.getRewards().size()) {
                     CrateReward old = crate.getRewards().get(index);
-                    CrateReward updated;
-                    if (old.isItem()) {
-                        updated = new CrateReward(old.getItem(), chance);
-                    } else {
-                        updated = new CrateReward(old.getType(), old.getAmount(), chance);
-                    }
+                    CrateReward updated = old.isItem() ?
+                        new CrateReward(old.getItem(), chance) :
+                        new CrateReward(old.getType(), old.getAmount(), chance);
                     crate.getRewards().set(index, updated);
                     plugin.getCrateManager().saveCrates();
                     player.sendMessage(ChatColor.GREEN + "Probabilità aggiornata a " + chance + "%!");
@@ -357,14 +380,48 @@ public class CrateListener implements Listener {
             return;
         }
 
-        // add_money o add_crystals
+        // add_money o add_crystals da bottone
+        if (CrateGUI.pendingInput.containsKey(uuid)) {
+            String type = CrateGUI.pendingInput.get(uuid);
+            CrateData crate = CrateGUI.editingCrate.get(uuid);
+            if (crate == null) { CrateGUI.pendingInput.remove(uuid); return; }
+
+            String[] parts = msg.split(" ");
+            if (parts.length < 2) {
+                player.sendMessage(ChatColor.RED + "Formato: <quantità> <probabilità%> — Es: 5000000 20");
+                return;
+            }
+            try {
+                double amount = Double.parseDouble(parts[0]);
+                double chance = Double.parseDouble(parts[1]);
+                if (type.equals("add_money")) {
+                    crate.addReward(new CrateReward(CrateReward.RewardType.MONEY, amount, chance));
+                    plugin.getCrateManager().saveCrates();
+                    player.sendMessage(ChatColor.GREEN + "Premio soldi aggiunto: " + formatMoney(amount) + "$ con " + chance + "%!");
+                } else {
+                    crate.addReward(new CrateReward(CrateReward.RewardType.CRYSTALS, amount, chance));
+                    plugin.getCrateManager().saveCrates();
+                    player.sendMessage(ChatColor.GREEN + "Premio cristalli aggiunto: " + (int)amount + " 💎 con " + chance + "%!");
+                }
+                CrateGUI.pendingInput.remove(uuid);
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    int page = CrateGUI.editPage.getOrDefault(uuid, 0);
+                    plugin.getCrateGUI().openCrateEdit(player, crate, page);
+                });
+            } catch (NumberFormatException ex) {
+                player.sendMessage(ChatColor.RED + "Valori non validi! Es: 5000000 20");
+            }
+            return;
+        }
+
+        // Vecchio sistema add_money/add_crystals scritto manualmente
         if (!msg.startsWith("add_money") && !msg.startsWith("add_crystals")) return;
         CrateData crate = CrateGUI.editingCrate.get(uuid);
         if (crate == null) return;
 
         String[] parts = msg.split(" ");
         if (parts.length < 3) {
-            player.sendMessage(ChatColor.RED + "Uso: add_money <quantità> <chance%> oppure add_crystals <quantità> <chance%>");
+            player.sendMessage(ChatColor.RED + "Uso: add_money <quantità> <chance%>");
             return;
         }
         try {
@@ -393,8 +450,8 @@ public class CrateListener implements Listener {
         if (!(e.getPlayer() instanceof Player player)) return;
         UUID uuid = player.getUniqueId();
         CrateGUI.openGUI.remove(uuid);
-        // Se stiamo impostando una probabilità NON rimuovere editingCrate
-        if (!CrateGUI.settingChanceIndex.containsKey(uuid)) {
+        // Non rimuovere editingCrate se stiamo aspettando input chat
+        if (!CrateGUI.settingChanceIndex.containsKey(uuid) && !CrateGUI.pendingInput.containsKey(uuid)) {
             CrateGUI.editingCrate.remove(uuid);
             CrateGUI.editPage.remove(uuid);
         }
