@@ -114,43 +114,8 @@ public class CrateListener implements Listener {
             return;
         }
 
-        Location loc = crate.getLocation().clone().add(0.5, 1, 0.5);
-        loc.getWorld().spawnParticle(Particle.FIREWORK, loc, 50, 0.5, 0.5, 0.5, 0.1);
-        loc.getWorld().playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
-        loc.getWorld().playSound(loc, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.5f, 1.0f);
-
-        String winMessage;
-
-        if (reward.getType() == CrateReward.RewardType.MONEY) {
-            // Dai soldi
-            if (plugin.getEconomy() != null) {
-                plugin.getEconomy().depositPlayer(player, reward.getAmount());
-            }
-            winMessage = ChatColor.GOLD + "💰 " + formatMoney(reward.getAmount()) + "$";
-            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
-        } else if (reward.getType() == CrateReward.RewardType.CRYSTALS) {
-            // Dai cristalli
-            plugin.getCrystalManager().addCrystals(player, (int) reward.getAmount());
-            winMessage = ChatColor.AQUA + "💎 " + (int) reward.getAmount() + " cristalli";
-            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
-        } else {
-            // Dai item
-            player.getInventory().addItem(reward.getItem());
-            String itemName = reward.getItem().getItemMeta() != null && reward.getItem().getItemMeta().hasDisplayName()
-                    ? reward.getItem().getItemMeta().getDisplayName()
-                    : reward.getItem().getType().name().toLowerCase().replace("_", " ");
-            winMessage = ChatColor.WHITE + itemName + " x" + reward.getItem().getAmount();
-            player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
-        }
-
-        player.sendMessage(crate.getRarity().primaryColor + "✦ Hai aperto una Crate " +
-                crate.getRarity().displayName + crate.getRarity().primaryColor + "!");
-
-        if (crate.getRarity() == CrateRarity.MITICA || crate.getRarity() == CrateRarity.LEGGENDARIA) {
-            Bukkit.broadcastMessage(crate.getRarity().primaryColor + "" + ChatColor.BOLD +
-                    "✦ " + player.getName() + " ha aperto una Crate " + crate.getRarity().displayName +
-                    " e ha vinto: " + winMessage + "!");
-        }
+        // Avvia animazione CSGO
+        plugin.getCrateGUI().openSpinAnimation(player, crate, reward);
     }
 
     private String formatMoney(double amount) {

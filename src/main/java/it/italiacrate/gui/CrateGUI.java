@@ -6,7 +6,10 @@ import it.italiacrate.models.CrateRarity;
 import it.italiacrate.models.CrateReward;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -26,8 +29,166 @@ public class CrateGUI {
         this.plugin = plugin;
     }
 
-    // GUI apertura crate - animazione
-    public void openCrate(Player player, CrateData crate) {
+    // Animazione CSGO - scorre gli item e rallenta sul premio
+    public void openSpinAnimation(Player player, CrateData crate, CrateReward finalReward) {
+        CrateRarity rarity = crate.getRarity();
+        String title = rarity.primaryColor + "✦ " + rarity.displayName + " ✦";
+        Inventory inv = Bukkit.createInventory(null, 27, title);
+
+        // Slot della roulette: riga centrale (slot 9-17)
+        int[] spinSlots = {9, 10, 11, 12, 13, 14, 15, 16, 17};
+        int centerSlot = 13; // slot vincente
+
+        // Frecce indicatrici sopra e sotto il centro
+        inv.setItem(4, createItem(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "▼"));
+        inv.setItem(22, createItem(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "▲"));
+
+        // Bordi
+        for (int i = 0; i < 9; i++) {
+            if (i != 4) inv.setItem(i, createGlass(rarity));
+        }
+        for (int i = 18; i < 27; i++) {
+            if (i != 22) inv.setItem(i, createGlass(rarity));
+        }
+
+        // Lista item per la roulette
+        List<ItemStack> spinItems = buildSpinItems(crate, finalReward);
+
+        openGUI.put(player.getUniqueId(), "spin_" + rarity.name());
+        player.openInventory(inv);
+
+        // Schedulazione animazione
+        // Velocità: inizia veloce, rallenta progressivamente
+        // Fasi: veloce (2 tick), medio (4 tick), lento (8 tick), ferma
+        int[] delays = {2,2,2,2,2,2,2,2,3,3,3,3,4,4,4,5,5,6,7,8,10,12,15,18,20};
+        int totalFrames = delays.length;
+        final int[] frame = {0};
+        final int[] spinPos = {0};
+
+        scheduleSpinFrame(player, inv, spinSlots, centerSlot, spinItems, finalReward,
+                delays, frame, spinPos, totalFrames, crate);
+    }
+
+    private void scheduleSpinFrame(Player player, Inventory inv, int[] spinSlots,
+            int centerSlot, List<ItemStack> spinItems, CrateReward finalReward,
+            int[] delays, int[] frame, int[] spinPos, int totalFrames, CrateData crate) {
+
+        if (frame[0] >= totalFrames) {
+            // Animazione finita - mostra premio finale
+            finishSpin(player, inv, centerSlot, finalReward, crate);
+            return;
+        }
+
+        long delay = delays[frame[0]];
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline() || player.getOpenInventory() == null) return;
+
+            // Aggiorna slot roulette
+            for (int i = 0; i < spinSlots.length; i++) {
+                int itemIndex = (spinPos[0] + i) % spinItems.size();
+                inv.setItem(spinSlots[i], spinItems.get(itemIndex));
+            }
+            spinPos[0] = (spinPos[0] + 1) % spinItems.size();
+
+            // Suono tick
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f,
+                    1.0f + (frame[0] * 0.02f));
+
+            frame[0]++;
+            scheduleSpinFrame(player, inv, spinSlots, centerSlot, spinItems,
+                    finalReward, delays, frame, spinPos, totalFrames, crate);
+
+        }, delay);
+    }
+
+    private void finishSpin(Player player, Inventory inv, int centerSlot,
+            CrateReward finalReward, CrateData crate) {
+
+        // Metti il premio nel centro
+        inv.setItem(centerSlot, getRewardDisplayItem(finalReward));
+
+        // Suono vittoria
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.2f);
+
+        // Particelle
+        Location loc = crate.getLocation().clone().add(0.5, 1, 0.5);
+        loc.getWorld().spawnParticle(Particle.FIREWORK, loc, 60, 0.5, 0.5, 0.5, 0.1);
+
+        // Dai il premio dopo 1 secondo
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            giveReward(player, finalReward, crate);
+            // Chiudi inventario dopo altri 2 secondi
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                player.closeInventory();
+            }, 40L);
+        }, 20L);
+    }
+
+    private List<ItemStack> buildSpinItems(CrateData crate, CrateReward finalReward) {
+        List<ItemStack> items = new ArrayList<>();
+        List<CrateReward> rewards = crate.getRewards();
+
+        // Aggiungi premi casuali per riempire la roulette (almeno 30 item)
+        Random rand = new Random();
+        for (int i = 0; i < 30; i++) {
+            CrateReward r = rewards.get(rand.nextInt(rewards.size()));
+            items.add(getRewardDisplayItem(r));
+        }
+        // Metti il premio finale vicino alla fine
+        items.add(items.size() - 3, getRewardDisplayItem(finalReward));
+        return items;
+    }
+
+    private ItemStack getRewardDisplayItem(CrateReward reward) {
+        if (reward.getType() == CrateReward.RewardType.MONEY) {
+            return createItemWithLore(Material.GOLD_NUGGET,
+                ChatColor.GOLD + "💰 " + formatMoney(reward.getAmount()) + "$",
+                Arrays.asList(ChatColor.YELLOW + "Premio Soldi"));
+        } else if (reward.getType() == CrateReward.RewardType.CRYSTALS) {
+            return createItemWithLore(Material.AMETHYST_SHARD,
+                ChatColor.AQUA + "💎 " + (int)reward.getAmount() + " Cristalli",
+                Arrays.asList(ChatColor.AQUA + "Premio Cristalli"));
+        } else {
+            return reward.getItem().clone();
+        }
+    }
+
+    public void giveReward(Player player, CrateReward reward, CrateData crate) {
+        String winMessage;
+        if (reward.getType() == CrateReward.RewardType.MONEY) {
+            if (plugin.getEconomy() != null) {
+                plugin.getEconomy().depositPlayer(player, reward.getAmount());
+            }
+            winMessage = ChatColor.GOLD + "💰 " + formatMoney(reward.getAmount()) + "$";
+        } else if (reward.getType() == CrateReward.RewardType.CRYSTALS) {
+            plugin.getCrystalManager().addCrystals(player, (int) reward.getAmount());
+            winMessage = ChatColor.AQUA + "💎 " + (int) reward.getAmount() + " cristalli";
+        } else {
+            player.getInventory().addItem(reward.getItem());
+            String itemName = reward.getItem().getItemMeta() != null && reward.getItem().getItemMeta().hasDisplayName()
+                    ? reward.getItem().getItemMeta().getDisplayName()
+                    : reward.getItem().getType().name().toLowerCase().replace("_", " ");
+            winMessage = ChatColor.WHITE + itemName + " x" + reward.getItem().getAmount();
+        }
+
+        player.sendMessage(crate.getRarity().primaryColor + "✦ Hai aperto una Crate " +
+                crate.getRarity().displayName + crate.getRarity().primaryColor + "!");
+        player.sendMessage(ChatColor.YELLOW + "Hai vinto: " + winMessage);
+
+        if (crate.getRarity() == CrateRarity.MITICA || crate.getRarity() == CrateRarity.LEGGENDARIA) {
+            Bukkit.broadcastMessage(crate.getRarity().primaryColor + "" + ChatColor.BOLD +
+                    "✦ " + player.getName() + " ha aperto una Crate " + crate.getRarity().displayName +
+                    " e ha vinto: " + winMessage + "!");
+        }
+    }
+
+    private String formatMoney(double amount) {
+        if (amount >= 1_000_000_000) return String.format("%.0fMld", amount / 1_000_000_000);
+        if (amount >= 1_000_000) return String.format("%.0fMln", amount / 1_000_000);
+        if (amount >= 1_000) return String.format("%.0fK", amount / 1_000);
+        return String.valueOf((long) amount);
+    }
         CrateRarity rarity = crate.getRarity();
         String title = rarity.primaryColor + "✦ Crate " + rarity.displayName + " ✦";
         Inventory inv = Bukkit.createInventory(null, 27, title);
