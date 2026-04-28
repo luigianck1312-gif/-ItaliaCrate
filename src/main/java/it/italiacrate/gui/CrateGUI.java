@@ -253,25 +253,7 @@ public class CrateGUI {
                 ChatColor.GREEN + "Aggiungi Item",
                 Arrays.asList(
                     ChatColor.GRAY + "Tieni l'oggetto in mano",
-                    ChatColor.GRAY + "e clicca uno slot vuoto"
-                )));
-
-        inv.setItem(46, createItemWithLore(Material.GOLD_NUGGET,
-                ChatColor.GOLD + "Aggiungi Premio Soldi",
-                Arrays.asList(
-                    ChatColor.GRAY + "Clicca qui, poi scrivi",
-                    ChatColor.GRAY + "in chat: <quantità> <chance%>",
-                    ChatColor.GRAY + "Es: 5000000 20",
-                    ChatColor.BLACK + "btn:add_money"
-                )));
-
-        inv.setItem(47, createItemWithLore(Material.AMETHYST_SHARD,
-                ChatColor.AQUA + "Aggiungi Premio Cristalli",
-                Arrays.asList(
-                    ChatColor.GRAY + "Clicca qui, poi scrivi",
-                    ChatColor.GRAY + "in chat: <quantità> <chance%>",
-                    ChatColor.GRAY + "Es: 100 15",
-                    ChatColor.BLACK + "btn:add_crystals"
+                    ChatColor.GRAY + "e clicca qui"
                 )));
 
         inv.setItem(45, page > 0 ? createItem(Material.ARROW, ChatColor.WHITE + "« Precedente") :

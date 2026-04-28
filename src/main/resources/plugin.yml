@@ -11,6 +11,9 @@ commands:
   crate:
     description: Gestione crate
     usage: /crate <edit>
+  voucher:
+    description: Crea voucher soldi o cristalli
+    usage: /voucher <money|crystals> <quantità> [player]
   givekey:
     description: Dai una chiave a un giocatore
     usage: /givekey <player> <comune|epica|leggendaria|mitica> [quantità]

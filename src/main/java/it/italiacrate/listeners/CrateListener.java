@@ -35,6 +35,42 @@ public class CrateListener implements Listener {
     }
 
     @EventHandler
+    public void onVoucherUse(PlayerInteractEvent e) {
+        if (e.getHand() != EquipmentSlot.HAND) return;
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Player player = e.getPlayer();
+        ItemStack item = player.getInventory().getItemInMainHand();
+        if (item.getType().isAir()) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null || !meta.hasLore()) return;
+
+        for (String line : meta.getLore()) {
+            if (!line.startsWith(ChatColor.BLACK + "voucher:")) continue;
+            e.setCancelled(true);
+            String[] parts = line.replace(ChatColor.BLACK + "voucher:", "").split(":");
+            if (parts.length < 2) return;
+            String type = parts[0];
+            double amount = Double.parseDouble(parts[1]);
+
+            if (type.equals("money")) {
+                if (plugin.getEconomy() != null) {
+                    plugin.getEconomy().depositPlayer(player, amount);
+                    player.sendMessage(ChatColor.GOLD + "💰 Hai riscattato " + ChatColor.WHITE + formatMoney(amount) + "$ !");
+                } else {
+                    player.sendMessage(ChatColor.RED + "Vault non disponibile!");
+                    return;
+                }
+            } else if (type.equals("crystals")) {
+                plugin.getCrystalManager().addCrystals(player, (int) amount);
+                player.sendMessage(ChatColor.AQUA + "💎 Hai riscattato " + ChatColor.WHITE + (int) amount + " cristalli!");
+            }
+
+            item.setAmount(item.getAmount() - 1);
+            return;
+        }
+    }
+
+    @EventHandler
     public void onBlockClick(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND) return;
         if (e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
