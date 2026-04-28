@@ -5,18 +5,13 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class CrystalManager {
 
     private final ItaliaCrate plugin;
-    private final Map<UUID, Integer> crystals = new HashMap<>();
 
     public CrystalManager(ItaliaCrate plugin) {
         this.plugin = plugin;
-        load();
     }
 
     public int getCrystals(Player player) {

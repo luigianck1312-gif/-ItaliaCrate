@@ -44,7 +44,6 @@ public class ItaliaCrate extends JavaPlugin {
     public void onDisable() {
         if (crateManager != null) crateManager.saveCrates();
         if (dailyManager != null) dailyManager.saveData();
-        if (crystalManager != null) crystalManager.save();
         if (npcManager != null) npcManager.save();
         getLogger().info("ItaliaCrate disattivato!");
     }
