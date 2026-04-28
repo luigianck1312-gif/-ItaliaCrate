@@ -24,7 +24,7 @@ public class CrateGUI {
     public static final Map<UUID, CrateData> editingCrate = new HashMap<>();
     public static final Map<UUID, Integer> editPage = new HashMap<>();
     public static final Map<UUID, Integer> settingChanceIndex = new HashMap<>();
-    public static final Map<UUID, String> pendingInput = new HashMap<>(); // "add_money" o "add_crystals"
+    public static final Map<UUID, String> pendingInput = new HashMap<>();
 
     public CrateGUI(ItaliaCrate plugin) {
         this.plugin = plugin;
