@@ -74,6 +74,11 @@ public class CrateListener implements Listener {
 
         // Admin con shift click → edit mode
         if (player.hasPermission("italiacrate.admin") && player.isSneaking()) {
+            UUID uuid = player.getUniqueId();
+            // Pulisci stato precedente
+            CrateGUI.pendingInput.remove(uuid);
+            CrateGUI.settingChanceIndex.remove(uuid);
+            CrateGUI.editingCrate.remove(uuid);
             plugin.getCrateGUI().openCrateEdit(player, crate, 0);
             return;
         }
