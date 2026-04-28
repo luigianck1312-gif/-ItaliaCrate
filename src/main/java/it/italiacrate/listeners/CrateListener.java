@@ -342,8 +342,7 @@ public class CrateListener implements Listener {
         Player player = e.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        boolean hasPending = CrateGUI.editingCrate.containsKey(uuid) || 
-                             CrateGUI.settingChanceIndex.containsKey(uuid) ||
+        boolean hasPending = CrateGUI.settingChanceIndex.containsKey(uuid) ||
                              CrateGUI.pendingInput.containsKey(uuid);
         if (!hasPending) return;
 
@@ -414,35 +413,6 @@ public class CrateListener implements Listener {
             return;
         }
 
-        // Vecchio sistema add_money/add_crystals scritto manualmente
-        if (!msg.startsWith("add_money") && !msg.startsWith("add_crystals")) return;
-        CrateData crate = CrateGUI.editingCrate.get(uuid);
-        if (crate == null) return;
-
-        String[] parts = msg.split(" ");
-        if (parts.length < 3) {
-            player.sendMessage(ChatColor.RED + "Uso: add_money <quantità> <chance%>");
-            return;
-        }
-        try {
-            double amount = Double.parseDouble(parts[1]);
-            double chance = Double.parseDouble(parts[2]);
-            if (msg.startsWith("add_money")) {
-                crate.addReward(new CrateReward(CrateReward.RewardType.MONEY, amount, chance));
-                plugin.getCrateManager().saveCrates();
-                player.sendMessage(ChatColor.GREEN + "Premio soldi aggiunto: " + formatMoney(amount) + "$ con " + chance + "%!");
-            } else {
-                crate.addReward(new CrateReward(CrateReward.RewardType.CRYSTALS, amount, chance));
-                plugin.getCrateManager().saveCrates();
-                player.sendMessage(ChatColor.GREEN + "Premio cristalli aggiunto: " + (int)amount + " 💎 con " + chance + "%!");
-            }
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                int page = CrateGUI.editPage.getOrDefault(uuid, 0);
-                plugin.getCrateGUI().openCrateEdit(player, crate, page);
-            });
-        } catch (NumberFormatException ex) {
-            player.sendMessage(ChatColor.RED + "Valori non validi!");
-        }
     }
 
     @EventHandler

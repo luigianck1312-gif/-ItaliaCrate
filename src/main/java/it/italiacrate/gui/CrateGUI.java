@@ -283,6 +283,9 @@ public class CrateGUI {
         editingCrate.put(player.getUniqueId(), crate);
         editPage.put(player.getUniqueId(), page);
         openGUI.put(player.getUniqueId(), "crate_edit");
+        // Pulisci eventuali input pendenti da crate precedenti
+        pendingInput.remove(player.getUniqueId());
+        settingChanceIndex.remove(player.getUniqueId());
         player.openInventory(inv);
     }
 
